@@ -1,3 +1,5 @@
+use std::env;
+
 use reign_ng::*;
 
 use chrono::Local;
@@ -7,23 +9,46 @@ use futures::join;
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 #[instrument]
 async fn main() -> Result<(), Error> {
+    let _log_reload_handle = initialize_logger();
+    info!(
+        "Starting {} v{}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
+
+
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 4 {
+        error!("Usage: bin/reign inventory reign-name hostname");
+        return Err(anyhow!("Insuficient arguments: {:?}", &args[1..]));
+    }
+
+    let inventory = &args[1];
+    let reign_name = &args[2];
+    let remote_host = &args[3];
+
+    // info!("Determine the remote host type…");
+
+
     let op_uuid = &uuidv4::uuid::v4();
     let remote_project_path = &format!("/tmp/reigns_{op_uuid}");
-    let remote_user = "www-data";
-    let remote_host = "kenny";
-    let inventory = "inventory";
-    let reign_name = "crashme";
-    let the_path = std::env::var("PATH")?;
+    let remote_user = &std::env::var("RUN_AS").unwrap_or(String::from(""));
+    let debug_shable = &std::env::var("DEBUG").unwrap_or_default();
+    let the_path = &std::env::var("PATH")?;
     let default_env = &[
-        ("DEBUG", ""),
         ("SKIP_ENV_VALIDATION", "1"),
         ("RUN_AS", remote_user),
-        ("USER", remote_user),
-        ("PATH", &the_path),
+        ("PATH", the_path),
+        ("DEBUG", debug_shable),
     ];
-
-    let _log_reload_handle = initialize_logger();
-    info!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    debug!(
+        "Settings: Reign: {reign_name}, Inventory: {inventory}, {}Hostname: {remote_host}, UUID: {op_uuid}",
+        if remote_user.is_empty() {
+            String::new()
+        } else {
+            format!("User: {remote_user}, ")
+        }
+    );
 
     // start of the process
     let start = Local::now();
