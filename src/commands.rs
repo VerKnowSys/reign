@@ -21,7 +21,7 @@ pub async fn run(
     let args = cmnd.split_whitespace().collect::<Vec<&str>>();
     let command = args[0];
     let mut cmd = Command::new(command);
-    cmd.kill_on_drop(false);
+    cmd.kill_on_drop(true);
     cmd.current_dir(DEFAULT_SHABLE_DIR);
     cmd.args(&args[1..]);
     cmd.envs(env.to_vec());
