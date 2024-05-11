@@ -50,23 +50,19 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
     for file in DEFAULT_FILES {
         glob(&format!("{DEFAULT_SHABLE_DIR}/{file}*"))?
             .filter_map(Result::ok)
-            .filter(|file| !file.is_dir())
+            .filter(|file| file.is_file())
             .for_each(|file| {
                 let a_file = file.into_os_string().into_string().unwrap_or_default();
-                if Path::exists(Path::new(&a_file)) {
-                    files_to_sync.push(a_file)
-                }
+                files_to_sync.push(a_file)
             });
     }
     for files in DEFAULT_DIRS {
         glob(&format!("{DEFAULT_SHABLE_DIR}/{files}/**/*"))?
             .filter_map(Result::ok)
-            .filter(|file| !file.is_dir())
+            .filter(|file| file.is_file())
             .for_each(|file| {
                 let a_file = file.into_os_string().into_string().unwrap_or_default();
-                if Path::exists(Path::new(&a_file)) {
-                    files_to_sync.push(a_file)
-                }
+                files_to_sync.push(a_file);
             });
     }
     trace!("Files to sync: {files_to_sync:#?}");
