@@ -71,7 +71,6 @@ async fn main() -> Result<(), Error> {
                     );
                     match reign_fut.await {
                         Ok(_) => {
-                            cleanup_fut.await?;
                             let reign_s = (Local::now() - taken_init).num_seconds();
                             cleanup_fut.await?;
                             info!(
