@@ -1,6 +1,7 @@
 use reign_ng::*;
 
 use chrono::Local;
+use futures::join;
 
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
@@ -36,7 +37,7 @@ async fn main() -> Result<(), Error> {
         op_uuid,
         default_env,
     );
-    let sync_fut = sync_command(
+    let sync_fut = upload_command(
         remote_user,
         remote_host,
         remote_project_path,
@@ -66,32 +67,55 @@ async fn main() -> Result<(), Error> {
         remote_project_path,
         default_env,
     );
-    // let cleanup_fail_fut = cleanup_command(
-    //     op_uuid,
-    //     remote_user,
-    //     remote_host,
-    //     remote_project_path,
-    //     default_env,
-    // )
-    // .await;
 
-    info!("💻 Collecting");
-    tar_fut.await
-        .and(mkdir_fut.await)
-        .and(sync_fut.await)
-        .and(unpack_fut.await)
-        .and(reign_fut.await)
-        .and(cleanup_fut.await)
-        .map_err(|e| {
-            // cleanup_fail_fut.unwrap_or_default();
+    let cleanup_fail_fut = cleanup_command(
+        op_uuid,
+        remote_user,
+        remote_host,
+        remote_project_path,
+        default_env,
+    );
+
+    // run these two at once:
+    let _ = join!(tar_fut, mkdir_fut);
+
+    // perform tasks in order:
+    match sync_fut.await {
+        Ok(_) => {
+            match unpack_fut.await {
+                Ok(_) => {
+                    let taken_init = Local::now();
+                    let taken_s = (taken_init - start).num_seconds();
+                    info!(
+                        "Ready: '{reign_name}' on {remote_user}@{remote_host} (took: {taken_s} seconds)"
+                    );
+                    match reign_fut.await {
+                        Ok(_) => {
+                            cleanup_fut.await?;
+                            let reign_s = (Local::now() - taken_init).num_seconds();
+                            info!(
+                                "Success: '{reign_name}' on {remote_user}@{remote_host} (took: {reign_s} seconds)"
+                            );
+                            Ok(())
+                        }
+                        Err(e) => {
+                            cleanup_fail_fut.await?;
+                            error!("{e}");
+                            Err(e)
+                        }
+                    }
+                }
+                Err(e) => {
+                    cleanup_fail_fut.await?;
+                    error!("{e}");
+                    Err(e)
+                }
+            }
+        }
+        Err(e) => {
+            cleanup_fail_fut.await?;
             error!("{e}");
-            e
-        })
-        .map(|_status| {
-            let taken = (Local::now() - start).num_seconds();
-            info!(
-                "💻 Success: '{reign_name}' on {remote_user}@{remote_host} (took: {taken} seconds)"
-            );
-            Ok(())
-        })?
+            Err(e)
+        }
+    }
 }

@@ -13,7 +13,7 @@ use std::{
 
 /// Run a shell command asynchronously, with streaming stdout/stderr + file logging
 #[instrument(skip(cmnd, env, identifier_reign))]
-pub async fn run_command(
+pub async fn run(
     cmnd: &str,
     env: &[(&str, &str)],
     identifier_reign: &str,
@@ -119,8 +119,8 @@ pub async fn tar_command(
         "tar --zstd -cf {op_uuid}{DEFAULT_ARCHIVE_EXT} --uname {remote_user} --gname {remote_user} --no-xattrs {files_to_sync_str}"
     );
     trace!("Cmd: {command}");
-    info!("🏠 Archive: Building the tarball (of {files_count} files)");
-    run_command(command, default_env, op_uuid).await
+    info!("Building archive… (total files: {files_count})");
+    run(command, default_env, op_uuid).await
 }
 
 
@@ -134,19 +134,16 @@ pub async fn ssh_mkdir_command(
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
     // ssh remote mkdir
-    let joined_dirs_str = DEFAULT_DIRS.join(" ");
-    let command = &format!(
-        "ssh {remote_user}@{remote_host} mkdir -p {remote_project_path} && cd {remote_project_path} && mkdir -p {joined_dirs_str}"
-    );
+    let command = &format!("ssh {remote_user}@{remote_host} mkdir -p {remote_project_path}");
     trace!("Cmd: {command}");
-    debug!("Mkdirs: {joined_dirs_str}");
-    run_command(command, default_env, op_uuid).await
+    info!("Creating remote dirs…");
+    run(command, default_env, op_uuid).await
 }
 
 
 /// sync over sftp
 #[instrument(skip(default_env))]
-pub async fn sync_command(
+pub async fn upload_command(
     remote_user: &str,
     remote_host: &str,
     remote_project_path: &str,
@@ -155,13 +152,11 @@ pub async fn sync_command(
 ) -> Result<ExitStatus, Error> {
     let file_to_sync = &format!("{op_uuid}{DEFAULT_ARCHIVE_EXT}");
     let command = &format!(
-        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} asdf{remote_user}@{remote_host}:{remote_project_path}/{file_to_sync}"
+        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {remote_user}@{remote_host}:{remote_project_path}/{file_to_sync}"
     );
     trace!("Cmd: {command}");
-    info!(
-        "🏠 Upload: {DEFAULT_SHABLE_DIR}/{file_to_sync} => {remote_project_path}/{file_to_sync}"
-    );
-    run_command(command, default_env, op_uuid).await
+    info!("Uploading…");
+    run(command, default_env, op_uuid).await
 }
 
 
@@ -178,8 +173,8 @@ pub async fn unpack_command(
         "ssh {remote_user}@{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
     );
     trace!("Cmd: {command}");
-    info!("💻 Unpack: {remote_user}@{remote_host}:{remote_project_path}");
-    run_command(command, default_env, op_uuid).await
+    info!("Unpacking…");
+    run(command, default_env, op_uuid).await
 }
 
 
@@ -207,8 +202,8 @@ pub async fn reign_command(
         debug = default_env[0].1
     );
     trace!("Cmd: {command}");
-    info!("💻 Reign: {reign_name} on {remote_user}@{remote_host}:{remote_project_path}");
-    run_command(command, default_env, op_uuid).await
+    info!("Reign => {reign_name} on {remote_user}@{remote_host}:{remote_project_path}");
+    run(command, default_env, op_uuid).await
 }
 
 
@@ -221,13 +216,10 @@ pub async fn cleanup_command(
     remote_project_path: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    // cleanup
     let command = &format!("ssh {remote_user}@{remote_host} rm -rf {remote_project_path}");
-    debug!("💻 Cleanup: {remote_user}@{remote_host}:{remote_project_path}");
-    run_command(command, default_env, op_uuid)
-        .await
-        .unwrap_or_default();
+    debug!("Cleanup: {remote_user}@{remote_host}:{remote_project_path}");
+    run(command, default_env, op_uuid).await.unwrap_or_default();
     let command = &format!("rm -f {op_uuid}{DEFAULT_ARCHIVE_EXT}");
-    debug!("💻 Cleanup: {op_uuid}{DEFAULT_ARCHIVE_EXT}");
-    run_command(command, default_env, op_uuid).await
+    debug!("Cleanup: {op_uuid}{DEFAULT_ARCHIVE_EXT}");
+    run(command, default_env, op_uuid).await
 }

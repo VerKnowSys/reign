@@ -13,7 +13,6 @@ tracing = { version = "0.1.40", features = ["log", "attributes", "std"] }
 tracing-subscriber = { version = "0.3.18", features = ["registry", "fmt", "env-filter"] }
 chrono = { version = "0.4.38", features = ["std"] }
 futures = "0.3.30"
-# futures-async-combinators = "0.3.2"
 
 
 # The release profile, used for `cargo build --release`.
