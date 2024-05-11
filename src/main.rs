@@ -111,8 +111,13 @@ async fn main() -> Result<(), Error> {
                 Ok(_) => {
                     let taken_init = Local::now();
                     let taken_s = (taken_init - start).num_seconds();
+                    let user_override = if remote_user.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{remote_user}@")
+                    };
                     info!(
-                        "Ready: '{reign_name}' on {remote_user}@{remote_host} (took: {taken_s} seconds)"
+                        "Ready: '{reign_name}' on {user_override}{remote_host} (took: {taken_s} seconds)"
                     );
                     match reign_fut.await {
                         Ok(_) => {

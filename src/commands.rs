@@ -133,8 +133,12 @@ pub async fn ssh_mkdir_command(
     op_uuid: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    // ssh remote mkdir
-    let command = &format!("ssh {remote_user}@{remote_host} mkdir -p {remote_project_path}");
+    let user_override = if remote_user.is_empty() {
+        String::new()
+    } else {
+        format!("{remote_user}@")
+    };
+    let command = &format!("ssh {user_override}{remote_host} mkdir -p {remote_project_path}");
     trace!("Cmd: {command}");
     info!("Creating remote dirs…");
     run(command, default_env, op_uuid).await
@@ -150,9 +154,14 @@ pub async fn upload_command(
     op_uuid: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
+    let user_override = if remote_user.is_empty() {
+        String::new()
+    } else {
+        format!("{remote_user}@")
+    };
     let file_to_sync = &format!("{op_uuid}{DEFAULT_ARCHIVE_EXT}");
     let command = &format!(
-        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {remote_user}@{remote_host}:{remote_project_path}/{file_to_sync}"
+        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {user_override}{remote_host}:{remote_project_path}/{file_to_sync}"
     );
     trace!("Cmd: {command}");
     info!("Uploading…");
@@ -169,8 +178,13 @@ pub async fn unpack_command(
     op_uuid: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
+    let user_override = if remote_user.is_empty() {
+        String::new()
+    } else {
+        format!("{remote_user}@")
+    };
     let command = &format!(
-        "ssh {remote_user}@{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
+        "ssh {user_override}{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
     );
     trace!("Cmd: {command}");
     info!("Unpacking…");
@@ -197,13 +211,18 @@ pub async fn reign_command(
     op_uuid: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
+    let user_override = if remote_user.is_empty() {
+        String::new()
+    } else {
+        format!("{remote_user}@")
+    };
 
     // TODO:  the two special Shable variables, possibly we can get rid of these soon™
     let debug_env = read_env(default_env, "DEBUG");
     let skip_env_validation = read_env(default_env, "SKIP_ENV_VALIDATION");
 
     let command = &format!(
-        "ssh {remote_user}@{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug} SKIP_ENV_VALIDATION=1 && bin/shable {inventory} {reign_name} 2>&1'",
+        "ssh {user_override}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
     info!("Reign => {reign_name} on {remote_user}@{remote_host}:{remote_project_path}");
@@ -220,9 +239,16 @@ pub async fn cleanup_command(
     remote_project_path: &str,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let command = &format!("ssh {remote_user}@{remote_host} rm -rf {remote_project_path}");
-    debug!("Cleanup: {remote_user}@{remote_host}:{remote_project_path}");
+    let user_override = if remote_user.is_empty() {
+        String::new()
+    } else {
+        format!("{remote_user}@")
+    };
+
+    let command = &format!("ssh {user_override}{remote_host} rm -rf {remote_project_path}");
+    debug!("Cleanup: {user_override}{remote_host}:{remote_project_path}");
     run(command, default_env, op_uuid).await.unwrap_or_default();
+
     let command = &format!("rm -f {op_uuid}{DEFAULT_ARCHIVE_EXT}");
     debug!("Cleanup: {op_uuid}{DEFAULT_ARCHIVE_EXT}");
     run(command, default_env, op_uuid).await
