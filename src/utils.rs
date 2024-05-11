@@ -72,3 +72,14 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
     trace!("Files to sync: {files_to_sync:#?}");
     Ok(files_to_sync)
 }
+
+
+/// helper to easily get value from env slice
+pub fn read_env(default_env: &[(&str, &str)], key: &str) -> String {
+    default_env
+        .iter()
+        .find(|(k, _v)| *k == key)
+        .unwrap_or(&(key, ""))
+        .1
+        .to_string()
+}
