@@ -72,3 +72,46 @@ pub use utils::*;
 pub mod commands;
 
 pub use commands::*;
+
+
+#[derive(Default, Clone, Debug)]
+/// Shable Reign Operation
+pub struct ReignOperation {
+    /// operation UUID
+    pub op_uuid: String,
+    /// inventory file name and the group (optional)
+    pub inventory: String,
+    /// shable reign name
+    pub reign_name: String,
+    /// remote user to use when connecting via the SSH
+    pub remote_user: String,
+    /// remote host to run reign on
+    pub remote_host: String,
+}
+
+impl ReignOperation {
+    /// Create a new Shable Reign operation
+    pub fn new(reign_name: &str, inventory: &str, remote_host: &str) -> Self {
+        Self {
+            op_uuid: uuidv4::uuid::v4(),
+            remote_user: std::env::var("RUN_AS").unwrap_or_default(),
+            remote_host: remote_host.to_owned(),
+            inventory: inventory.to_owned(),
+            reign_name: reign_name.to_owned(),
+        }
+    }
+
+    /// produce a default remote path to sync to
+    pub fn remote_project_path(&self) -> String {
+        format!("/tmp/reigns_{}", self.op_uuid)
+    }
+
+    /// produce remote user prefix for ssh command
+    pub fn remote_user_ssh(&self) -> String {
+        if self.remote_user.is_empty() {
+            String::new()
+        } else {
+            format!("{}@", self.remote_user)
+        }
+    }
+}

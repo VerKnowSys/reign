@@ -75,6 +75,7 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
 
 
 /// helper to easily get value from env slice
+#[instrument(skip(default_env))]
 pub fn read_env(default_env: &[(&str, &str)], key: &str) -> String {
     default_env
         .iter()

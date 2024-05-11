@@ -104,10 +104,11 @@ pub async fn run(
 /// create archive with all necessary files
 #[instrument(skip(default_env))]
 pub async fn tar_command(
-    remote_user: &str,
-    op_uuid: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
+    let op_uuid = &operation.op_uuid;
+    let remote_user = &operation.remote_user;
     let files_to_sync = gather_files_to_sync().await?;
     let files_count = files_to_sync.len();
     let files_to_sync_str = files_to_sync
@@ -127,18 +128,15 @@ pub async fn tar_command(
 /// make remote dirs
 #[instrument(skip(default_env))]
 pub async fn ssh_mkdir_command(
-    remote_user: &str,
-    remote_host: &str,
-    remote_project_path: &str,
-    op_uuid: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let user_override = if remote_user.is_empty() {
-        String::new()
-    } else {
-        format!("{remote_user}@")
-    };
-    let command = &format!("ssh {user_override}{remote_host} mkdir -p {remote_project_path}");
+    let op_uuid = &operation.op_uuid;
+    let remote_user = &operation.remote_user_ssh();
+    let remote_host = &operation.remote_host;
+    let remote_project_path = &operation.remote_project_path();
+
+    let command = &format!("ssh {remote_user}{remote_host} mkdir -p {remote_project_path}");
     trace!("Cmd: {command}");
     info!("Creating remote dirs…");
     run(command, default_env, op_uuid).await
@@ -148,20 +146,16 @@ pub async fn ssh_mkdir_command(
 /// sync over sftp
 #[instrument(skip(default_env))]
 pub async fn upload_command(
-    remote_user: &str,
-    remote_host: &str,
-    remote_project_path: &str,
-    op_uuid: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let user_override = if remote_user.is_empty() {
-        String::new()
-    } else {
-        format!("{remote_user}@")
-    };
+    let op_uuid = &operation.op_uuid;
+    let remote_user = &operation.remote_user_ssh();
+    let remote_host = &operation.remote_host;
+    let remote_project_path = &operation.remote_project_path();
     let file_to_sync = &format!("{op_uuid}{DEFAULT_ARCHIVE_EXT}");
     let command = &format!(
-        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {user_override}{remote_host}:{remote_project_path}/{file_to_sync}"
+        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {remote_user}{remote_host}:{remote_project_path}/{file_to_sync}"
     );
     trace!("Cmd: {command}");
     info!("Uploading…");
@@ -172,19 +166,15 @@ pub async fn upload_command(
 /// unpack the tarball
 #[instrument(skip(default_env))]
 pub async fn unpack_command(
-    remote_user: &str,
-    remote_host: &str,
-    remote_project_path: &str,
-    op_uuid: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let user_override = if remote_user.is_empty() {
-        String::new()
-    } else {
-        format!("{remote_user}@")
-    };
+    let op_uuid = &operation.op_uuid;
+    let remote_user = &operation.remote_user_ssh();
+    let remote_host = &operation.remote_host;
+    let remote_project_path = &operation.remote_project_path();
     let command = &format!(
-        "ssh {user_override}{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
+        "ssh {remote_user}{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
     );
     trace!("Cmd: {command}");
     info!("Unpacking…");
@@ -193,39 +183,27 @@ pub async fn unpack_command(
 
 
 /// call a reign
-#[instrument(skip(
-    remote_user,
-    remote_host,
-    remote_project_path,
-    inventory,
-    reign_name,
-    op_uuid,
-    default_env
-))]
+#[instrument(skip(operation, default_env))]
 pub async fn reign_command(
-    remote_user: &str,
-    remote_host: &str,
-    remote_project_path: &str,
-    inventory: &str,
-    reign_name: &str,
-    op_uuid: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let user_override = if remote_user.is_empty() {
-        String::new()
-    } else {
-        format!("{remote_user}@")
-    };
+    let op_uuid = &operation.op_uuid;
+    let inventory = &operation.inventory;
+    let reign_name = &operation.reign_name;
+    let remote_user = &operation.remote_user_ssh();
+    let remote_host = &operation.remote_host;
+    let remote_project_path = &operation.remote_project_path();
 
     // TODO:  the two special Shable variables, possibly we can get rid of these soon™
     let debug_env = read_env(default_env, "DEBUG");
     let skip_env_validation = read_env(default_env, "SKIP_ENV_VALIDATION");
 
     let command = &format!(
-        "ssh {user_override}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
+        "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
-    info!("Reign => {reign_name} on {remote_user}@{remote_host}:{remote_project_path}");
+    info!("Reign => {reign_name} on {remote_user}{remote_host}:{remote_project_path}");
     run(command, default_env, op_uuid).await
 }
 
@@ -233,20 +211,16 @@ pub async fn reign_command(
 /// perform cleanup
 #[instrument(skip(default_env))]
 pub async fn cleanup_command(
-    op_uuid: &str,
-    remote_user: &str,
-    remote_host: &str,
-    remote_project_path: &str,
+    operation: &ReignOperation,
     default_env: &[(&str, &str)],
 ) -> Result<ExitStatus, Error> {
-    let user_override = if remote_user.is_empty() {
-        String::new()
-    } else {
-        format!("{remote_user}@")
-    };
+    let op_uuid = &operation.op_uuid;
+    let remote_user = &operation.remote_user_ssh();
+    let remote_host = &operation.remote_host;
+    let remote_project_path = &operation.remote_project_path();
 
-    let command = &format!("ssh {user_override}{remote_host} rm -rf {remote_project_path}");
-    debug!("Cleanup: {user_override}{remote_host}:{remote_project_path}");
+    let command = &format!("ssh {remote_user}{remote_host} rm -rf {remote_project_path}");
+    debug!("Cleanup: {remote_user}{remote_host}:{remote_project_path}");
     run(command, default_env, op_uuid).await.unwrap_or_default();
 
     let command = &format!("rm -f {op_uuid}{DEFAULT_ARCHIVE_EXT}");
