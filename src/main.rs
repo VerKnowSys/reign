@@ -37,6 +37,17 @@ async fn main() -> Result<(), Error> {
     let reign_fut = reign_command(operation);
     let cleanup_fut = cleanup_command(operation);
 
+    // gracefully handle interrupts
+    tokio::spawn(async move {
+        // wait for ctrl-c trigger
+        tokio::signal::ctrl_c().await?;
+
+        // ctrl-c triggered
+        warn!("Interrupted Reign.");
+
+        Err::<(), Error>(anyhow!("Interrupted"))
+    });
+
     // run these two at once:
     let _ = join!(tar_fut, mkdir_fut);
 
