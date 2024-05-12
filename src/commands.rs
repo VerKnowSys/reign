@@ -102,7 +102,7 @@ pub async fn run(
 
 
 /// create archive with all necessary files
-#[instrument]
+#[instrument(skip(operation))]
 pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user;
@@ -110,7 +110,7 @@ pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error
     let files_count = files_to_sync.len();
     let files_to_sync_str = files_to_sync
         .into_iter()
-        .map(|file| file.replace(&format!("{DEFAULT_SHABLE_DIR}/"), ""))
+        .map(|abs_file| abs_file.replace(&format!("{DEFAULT_SHABLE_DIR}/"), ""))
         .collect::<Vec<_>>()
         .join(" ");
     let command = &format!(
@@ -123,7 +123,7 @@ pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error
 
 
 /// make remote dirs
-#[instrument]
+#[instrument(skip(operation))]
 pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -138,7 +138,7 @@ pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus,
 
 
 /// sync over sftp
-#[instrument]
+#[instrument(skip(operation))]
 pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -155,7 +155,7 @@ pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Er
 
 
 /// unpack the tarball
-#[instrument]
+#[instrument(skip(operation))]
 pub async fn unpack_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -187,13 +187,13 @@ pub async fn reign_command(operation: &ReignOperation) -> Result<ExitStatus, Err
         "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
-    info!("Reign => {reign_name} on {remote_user}{remote_host}:{remote_project_path}");
+    info!("Reign => '{reign_name}' on '{remote_user}{remote_host}:{remote_project_path}'");
     run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// perform cleanup
-#[instrument]
+#[instrument(skip(operation))]
 pub async fn cleanup_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();

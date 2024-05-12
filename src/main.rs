@@ -10,12 +10,6 @@ use futures::join;
 #[instrument]
 async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
-    info!(
-        "Starting {} v{}",
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION")
-    );
-
     let args: Vec<String> = args().collect();
     if args.len() < 4 {
         error!("Usage: bin/reign inventory reign-name hostname");
@@ -27,7 +21,11 @@ async fn main() -> Result<(), Error> {
     let remote_host = &args[3];
 
     let operation = &ReignOperation::new(reign_name, inventory, remote_host);
-
+    info!(
+        "Starting {} v{}, operation: {operation:?}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
     // start of the process
     let start = Local::now();
 
