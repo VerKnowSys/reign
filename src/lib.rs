@@ -87,17 +87,36 @@ pub struct ReignOperation {
     pub remote_user: String,
     /// remote host to run reign on
     pub remote_host: String,
+    /// local environment from which we run the reign
+    pub default_env: Vec<(String, String)>,
 }
 
 impl ReignOperation {
     /// Create a new Shable Reign operation
     pub fn new(reign_name: &str, inventory: &str, remote_host: &str) -> Self {
+        let op_uuid = uuidv4::uuid::v4();
+        let reign_name = reign_name.to_owned();
+        let remote_host = remote_host.to_owned();
+        let inventory = inventory.to_owned();
+
+        // shable significant env variables:
+        let remote_user = std::env::var("RUN_AS").unwrap_or_default();
+        let debug_shable = std::env::var("DEBUG").unwrap_or_default();
+        let validation_shable = std::env::var("SKIP_ENV_VALIDATION").unwrap_or_default();
+
+        // initialize env for all future commands:
+        let default_env = vec![
+            (String::from("DEBUG"), debug_shable),
+            (String::from("RUN_AS"), remote_user.to_owned()),
+            (String::from("SKIP_ENV_VALIDATION"), validation_shable),
+        ];
         Self {
-            op_uuid: uuidv4::uuid::v4(),
-            remote_user: std::env::var("RUN_AS").unwrap_or_default(),
-            remote_host: remote_host.to_owned(),
-            inventory: inventory.to_owned(),
-            reign_name: reign_name.to_owned(),
+            op_uuid,
+            remote_user,
+            remote_host,
+            inventory,
+            reign_name,
+            default_env,
         }
     }
 

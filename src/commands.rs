@@ -15,7 +15,7 @@ use std::{
 #[instrument(skip(cmnd, env, identifier_reign))]
 pub async fn run(
     cmnd: &str,
-    env: &[(&str, &str)],
+    env: &[(String, String)],
     identifier_reign: &str,
 ) -> Result<ExitStatus, Error> {
     let args = cmnd.split_whitespace().collect::<Vec<&str>>();
@@ -102,11 +102,8 @@ pub async fn run(
 
 
 /// create archive with all necessary files
-#[instrument(skip(default_env))]
-pub async fn tar_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument]
+pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user;
     let files_to_sync = gather_files_to_sync().await?;
@@ -121,16 +118,13 @@ pub async fn tar_command(
     );
     trace!("Cmd: {command}");
     info!("Building archive… (total files: {files_count})");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// make remote dirs
-#[instrument(skip(default_env))]
-pub async fn ssh_mkdir_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument]
+pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
     let remote_host = &operation.remote_host;
@@ -139,16 +133,13 @@ pub async fn ssh_mkdir_command(
     let command = &format!("ssh {remote_user}{remote_host} mkdir -p {remote_project_path}");
     trace!("Cmd: {command}");
     info!("Creating remote dirs…");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// sync over sftp
-#[instrument(skip(default_env))]
-pub async fn upload_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument]
+pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
     let remote_host = &operation.remote_host;
@@ -159,16 +150,13 @@ pub async fn upload_command(
     );
     trace!("Cmd: {command}");
     info!("Uploading…");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// unpack the tarball
-#[instrument(skip(default_env))]
-pub async fn unpack_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument]
+pub async fn unpack_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
     let remote_host = &operation.remote_host;
@@ -178,16 +166,13 @@ pub async fn unpack_command(
     );
     trace!("Cmd: {command}");
     info!("Unpacking…");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// call a reign
-#[instrument(skip(operation, default_env))]
-pub async fn reign_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument(skip(operation))]
+pub async fn reign_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let inventory = &operation.inventory;
     let reign_name = &operation.reign_name;
@@ -195,25 +180,21 @@ pub async fn reign_command(
     let remote_host = &operation.remote_host;
     let remote_project_path = &operation.remote_project_path();
 
-    // TODO:  the two special Shable variables, possibly we can get rid of these soon™
-    let debug_env = read_env(default_env, "DEBUG");
-    let skip_env_validation = read_env(default_env, "SKIP_ENV_VALIDATION");
+    let debug_env = read_env(&operation.default_env, "DEBUG");
+    let skip_env_validation = read_env(&operation.default_env, "SKIP_ENV_VALIDATION");
 
     let command = &format!(
         "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
     info!("Reign => {reign_name} on {remote_user}{remote_host}:{remote_project_path}");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// perform cleanup
-#[instrument(skip(default_env))]
-pub async fn cleanup_command(
-    operation: &ReignOperation,
-    default_env: &[(&str, &str)],
-) -> Result<ExitStatus, Error> {
+#[instrument]
+pub async fn cleanup_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
     let remote_host = &operation.remote_host;
@@ -221,9 +202,11 @@ pub async fn cleanup_command(
 
     let command = &format!("ssh {remote_user}{remote_host} rm -rf {remote_project_path}");
     debug!("Cleanup: {remote_user}{remote_host}:{remote_project_path}");
-    run(command, default_env, op_uuid).await.unwrap_or_default();
+    run(command, &operation.default_env, op_uuid)
+        .await
+        .unwrap_or_default();
 
     let command = &format!("rm -f {op_uuid}{DEFAULT_ARCHIVE_EXT}");
     debug!("Cleanup: {op_uuid}{DEFAULT_ARCHIVE_EXT}");
-    run(command, default_env, op_uuid).await
+    run(command, &operation.default_env, op_uuid).await
 }
