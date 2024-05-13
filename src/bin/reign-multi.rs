@@ -30,11 +30,12 @@ async fn main() -> Result<(), Error> {
     let reign_name = &args[2];
     let remote_hosts = args[3].split(',').collect::<Vec<_>>();
 
-    let mut futures = vec![];
-    for remote_host in remote_hosts {
-        let op = call_operation(ReignOperation::new(reign_name, inventory, remote_host));
-        futures.push(op);
-    }
+    let futures = remote_hosts
+        .into_iter()
+        .map(|remote_host| {
+            call_operation(ReignOperation::new(reign_name, inventory, remote_host))
+        })
+        .collect::<Vec<_>>();
     let results = join_all(futures).await;
     let all_results = results.into_iter().collect::<Vec<_>>();
     let fails: Vec<_> = all_results.iter().filter(|elem| elem.is_err()).collect();
