@@ -1,18 +1,19 @@
 use reign_ng::*;
 
-use futures::future::join_all;
+// use futures::future::join_all;
 use std::env::args;
 
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+
+#[tokio::main]
 #[instrument]
 async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
+    let total_time = Local::now();
     let args: Vec<String> = args().collect();
     if args.len() < 4 {
         error!("Usage: bin/reign-multi inventory reign-name hostname hostnameN […]");
-        let slice = &args[1..];
-        return Err(anyhow!("Insuficient arguments: {:?}", slice));
+        return Err(anyhow!("Insuficient arguments: {:?}", &args[1..]));
     }
 
     // gracefully handle interrupts
@@ -38,6 +39,11 @@ async fn main() -> Result<(), Error> {
         .collect::<Vec<_>>();
     let results = join_all(futures).await;
     let all_results = results.into_iter().collect::<Vec<_>>();
+    info!(
+        "All operations took {} seconds",
+        (Local::now() - total_time).num_seconds()
+    );
+
     let fails: Vec<_> = all_results.iter().filter(|elem| elem.is_err()).collect();
     if !fails.is_empty() {
         Err(anyhow!("Failed to process async operation(s): {fails:#?}!"))

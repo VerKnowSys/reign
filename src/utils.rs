@@ -86,11 +86,7 @@ pub fn read_env(default_env: &[(String, String)], key: &str) -> String {
 
 /// call remote operation helper
 pub async fn call_operation(operation: ReignOperation) -> Result<(), Error> {
-    info!(
-        "Starting {} v{}, operation: {operation:?}",
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION")
-    );
+    debug!("New operation {operation:?}");
     // start of the process
     let start = Local::now();
     let reign_name = &operation.reign_name;
@@ -115,7 +111,7 @@ pub async fn call_operation(operation: ReignOperation) -> Result<(), Error> {
                     let taken_init = Local::now();
                     let taken_s = (taken_init - start).num_seconds();
                     let remote_user = &operation.remote_user_ssh();
-                    info!(
+                    debug!(
                         "Ready: '{reign_name}' on {remote_user}{remote_host} (took: {taken_s} seconds)"
                     );
                     match reign_fut.await {
@@ -123,7 +119,7 @@ pub async fn call_operation(operation: ReignOperation) -> Result<(), Error> {
                             let reign_s = (Local::now() - taken_init).num_seconds();
                             cleanup_fut.await?;
                             info!(
-                                "Success: '{reign_name}' on {remote_user}{remote_host} (took: {reign_s} seconds)"
+                                "✓ {reign_name}: {remote_user}{remote_host} (took: {reign_s} seconds)"
                             );
                             Ok(())
                         }
