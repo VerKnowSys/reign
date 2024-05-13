@@ -188,7 +188,7 @@ pub async fn reign_command(operation: &ReignOperation) -> Result<ExitStatus, Err
     let skip_env_validation = read_env(&operation.default_env, "SKIP_ENV_VALIDATION");
 
     let command = &format!(
-        "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
+        "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} REMOTE={remote_host} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
     debug!("Reign => '{reign_name}' on '{remote_user}{remote_host}:{remote_project_path}'");
