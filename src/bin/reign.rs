@@ -3,7 +3,7 @@ use reign_ng::*;
 use std::env::args;
 
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+#[tokio::main]
 #[instrument]
 async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
