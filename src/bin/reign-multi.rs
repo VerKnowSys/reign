@@ -10,7 +10,7 @@ async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
     let args: Vec<String> = args().collect();
     if args.len() < 4 {
-        error!("Usage: bin/reign-multi inventory reign-name hostname,hostname2,…");
+        error!("Usage: bin/reign-multi inventory reign-name hostname hostnameN […]");
         let slice = &args[1..];
         return Err(anyhow!("Insuficient arguments: {:?}", slice));
     }
@@ -28,10 +28,10 @@ async fn main() -> Result<(), Error> {
 
     let inventory = &args[1];
     let reign_name = &args[2];
-    let remote_hosts = args[3].split(',').collect::<Vec<_>>();
+    let remote_hosts = &args[3..];
 
     let futures = remote_hosts
-        .into_iter()
+        .iter()
         .map(|remote_host| {
             call_operation(ReignOperation::new(reign_name, inventory, remote_host))
         })
