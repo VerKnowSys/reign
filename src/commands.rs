@@ -102,7 +102,7 @@ pub async fn run(
 
 
 /// create archive with all necessary files
-#[instrument(skip(operation))]
+#[instrument]
 pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user;
@@ -117,13 +117,13 @@ pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error
         "tar --zstd -cf {op_uuid}{DEFAULT_ARCHIVE_EXT} --uname {remote_user} --gname {remote_user} --no-xattrs {files_to_sync_str}"
     );
     trace!("Cmd: {command}");
-    info!("Building archive… (total files: {files_count})");
+    debug!("Building archive… (total files: {files_count})");
     run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// make remote dirs
-#[instrument(skip(operation))]
+#[instrument]
 pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -132,13 +132,13 @@ pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus,
 
     let command = &format!("ssh {remote_user}{remote_host} mkdir -p {remote_project_path}");
     trace!("Cmd: {command}");
-    info!("Creating remote dirs…");
+    debug!("Creating remote dirs…");
     run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// sync over sftp
-#[instrument(skip(operation))]
+#[instrument]
 pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -149,13 +149,13 @@ pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Er
         "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {remote_user}{remote_host}:{remote_project_path}/{file_to_sync}"
     );
     trace!("Cmd: {command}");
-    info!("Uploading…");
+    debug!("Uploading…");
     run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// unpack the tarball
-#[instrument(skip(operation))]
+#[instrument]
 pub async fn unpack_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
@@ -165,7 +165,7 @@ pub async fn unpack_command(operation: &ReignOperation) -> Result<ExitStatus, Er
         "ssh {remote_user}{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
     );
     trace!("Cmd: {command}");
-    info!("Unpacking…");
+    debug!("Unpacking…");
     run(command, &operation.default_env, op_uuid).await
 }
 
@@ -187,13 +187,13 @@ pub async fn reign_command(operation: &ReignOperation) -> Result<ExitStatus, Err
         "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} && bin/shable {inventory} {reign_name} 2>&1'"
     );
     trace!("Cmd: {command}");
-    info!("Reign => '{reign_name}' on '{remote_user}{remote_host}:{remote_project_path}'");
+    debug!("Reign => '{reign_name}' on '{remote_user}{remote_host}:{remote_project_path}'");
     run(command, &operation.default_env, op_uuid).await
 }
 
 
 /// perform cleanup
-#[instrument(skip(operation))]
+#[instrument]
 pub async fn cleanup_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user_ssh();
