@@ -1,4 +1,6 @@
 use crate::*;
+use chrono::Local;
+use futures::join;
 use glob::glob;
 use std::path::Path;
 
@@ -79,4 +81,70 @@ pub fn read_env(default_env: &[(String, String)], key: &str) -> String {
         .unwrap_or(&(String::from(key), String::new()))
         .1
         .to_string()
+}
+
+
+/// call remote operation helper
+pub async fn call_operation(operation: ReignOperation) -> Result<(), Error> {
+    info!(
+        "Starting {} v{}, operation: {operation:?}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
+    // start of the process
+    let start = Local::now();
+    let reign_name = &operation.reign_name;
+    let remote_host = &operation.remote_host;
+
+    // chain the run and check the status
+    let tar_fut = tar_command(&operation);
+    let mkdir_fut = ssh_mkdir_command(&operation);
+    let sync_fut = upload_command(&operation);
+    let unpack_fut = unpack_command(&operation);
+    let reign_fut = reign_command(&operation);
+    let cleanup_fut = cleanup_command(&operation);
+
+    // run these two at once:
+    let _ = join!(tar_fut, mkdir_fut);
+
+    // perform tasks in order:
+    match sync_fut.await {
+        Ok(_) => {
+            match unpack_fut.await {
+                Ok(_) => {
+                    let taken_init = Local::now();
+                    let taken_s = (taken_init - start).num_seconds();
+                    let remote_user = &operation.remote_user_ssh();
+                    info!(
+                        "Ready: '{reign_name}' on {remote_user}{remote_host} (took: {taken_s} seconds)"
+                    );
+                    match reign_fut.await {
+                        Ok(_) => {
+                            let reign_s = (Local::now() - taken_init).num_seconds();
+                            cleanup_fut.await?;
+                            info!(
+                                "Success: '{reign_name}' on {remote_user}{remote_host} (took: {reign_s} seconds)"
+                            );
+                            Ok(())
+                        }
+                        Err(e) => {
+                            cleanup_fut.await?;
+                            error!("{e}");
+                            Err(e)
+                        }
+                    }
+                }
+                Err(e) => {
+                    cleanup_fut.await?;
+                    error!("{e}");
+                    Err(e)
+                }
+            }
+        }
+        Err(e) => {
+            cleanup_fut.await?;
+            error!("{e}");
+            Err(e)
+        }
+    }
 }
