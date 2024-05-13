@@ -1,8 +1,8 @@
 use reign_ng::*;
 
-// use futures::future::join_all;
+use chrono::Local;
+use futures::StreamExt;
 use std::env::args;
-
 
 
 #[tokio::main]
@@ -37,7 +37,14 @@ async fn main() -> Result<(), Error> {
             call_operation(ReignOperation::new(reign_name, inventory, remote_host))
         })
         .collect::<Vec<_>>();
-    let results = join_all(futures).await;
+
+    // create a buffered stream that will execute up to DEFAULT_MAX_FUTURES_IN_PARALLEL futures in parallel
+    let stream =
+        futures::stream::iter(futures).buffer_unordered(DEFAULT_MAX_FUTURES_IN_PARALLEL);
+
+    // wait for all futures to complete
+    info!("Streaming the process to max: {DEFAULT_MAX_FUTURES_IN_PARALLEL} ops at once");
+    let results = stream.collect::<Vec<_>>().await;
     let all_results = results.into_iter().collect::<Vec<_>>();
     info!(
         "All operations took {} seconds",
