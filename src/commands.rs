@@ -42,14 +42,18 @@ pub async fn run(
     let mut stdout_reader = BufReader::new(stdout).lines();
     let mut stderr_reader = BufReader::new(stderr).lines();
 
-    let stdout_log_name = &format!("logfile-{identifier_reign}-{command}-stdout.log");
+    let homedir = std::env::var("HOME").unwrap_or(String::from("/tmp"));
+    let log_dir = format!("{homedir}/.shable/logs");
+    tokio::fs::create_dir_all(&log_dir).await?;
+
+    let stdout_log_name = &format!("{log_dir}/reign-{identifier_reign}-{command}-stdout.log");
     let mut stdout_logfile = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(false)
         .open(stdout_log_name)
         .await?;
-    let stderr_log_name = &format!("logfile-{identifier_reign}-{command}-stderr.log");
+    let stderr_log_name = &format!("{log_dir}/reign-{identifier_reign}-{command}-stderr.log");
     let mut stderr_logfile = OpenOptions::new()
         .write(true)
         .create(true)
