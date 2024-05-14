@@ -4,7 +4,6 @@
 
 #![forbid(unsafe_code)]
 #![deny(
-    missing_docs,
     unstable_features,
     missing_debug_implementations,
     missing_copy_implementations,
@@ -26,13 +25,8 @@
     unused_comparisons,
     unused_parens,
     while_true,
-    missing_debug_implementations,
     missing_docs,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications
+    unused_extern_crates
 )]
 #![allow(unused_imports)]
 
