@@ -44,9 +44,6 @@ pub use tracing_subscriber::{
     Registry,
 };
 
-/// defines the default amount of simultaneuous futures that may be executed in parallel at once
-pub const DEFAULT_MAX_FUTURES_IN_PARALLEL: usize = 10;
-
 /// default dirs to sync
 pub const DEFAULT_DIRS: [&str; 6] = ["bin", "facts", "lib", "reigns", "tasks", "templates"];
 

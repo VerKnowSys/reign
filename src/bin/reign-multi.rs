@@ -9,6 +9,7 @@ use std::env::args;
 #[instrument]
 async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
+    let cpu_cores = num_cpus::get();
     let total_time = Local::now();
     let args: Vec<String> = args().collect();
     if args.len() < 4 {
@@ -38,12 +39,11 @@ async fn main() -> Result<(), Error> {
         })
         .collect::<Vec<_>>();
 
-    // create a buffered stream that will execute up to DEFAULT_MAX_FUTURES_IN_PARALLEL futures in parallel
-    let stream =
-        futures::stream::iter(futures).buffer_unordered(DEFAULT_MAX_FUTURES_IN_PARALLEL);
+    // create a buffered stream that will execute up to cpu_cores futures in parallel
+    let stream = futures::stream::iter(futures).buffer_unordered(cpu_cores);
 
     // wait for all futures to complete
-    info!("Streaming the process to max: {DEFAULT_MAX_FUTURES_IN_PARALLEL} ops at once");
+    info!("Streaming the process to max: {cpu_cores} ops at once");
     let results = stream.collect::<Vec<_>>().await;
     let all_results = results.into_iter().collect::<Vec<_>>();
     info!(
