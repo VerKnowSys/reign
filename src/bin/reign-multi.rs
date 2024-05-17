@@ -9,7 +9,7 @@ use std::env::args;
 #[instrument]
 async fn main() -> Result<(), Error> {
     let _log_reload_handle = initialize_logger();
-    let cpu_cores = num_cpus::get();
+    let cpu_cores = num_cpus::get_physical();
     let total_time = Local::now();
     let args: Vec<String> = args().collect();
     if args.len() < 4 {
