@@ -1,19 +1,15 @@
 use crate::*;
+
 use chrono::Local;
 use futures::join;
 use glob::glob;
-use std::path::Path;
-
-// use tokio::fs::OpenOptions;
-// use tokio::io::AsyncBufReadExt;
-// use tokio::io::AsyncWriteExt;
-// use tokio::io::BufReader;
-use tokio::process::Command;
-
 use std::{
+    path::Path,
     process::{exit, ExitStatus, Output, Stdio, Termination},
     thread,
 };
+use tokio::process::Command;
+
 
 /// Helper type for Instrumentation handle
 pub type TracingEnvFilterHandle =
