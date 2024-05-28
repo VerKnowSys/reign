@@ -97,12 +97,14 @@ impl ReignOperation {
         let remote_user = std::env::var("RUN_AS").unwrap_or_default();
         let debug_shable = std::env::var("DEBUG").unwrap_or_default();
         let validation_shable = std::env::var("SKIP_ENV_VALIDATION").unwrap_or_default();
+        let arguments = std::env::var("ARGUMENTS").unwrap_or_default();
 
         // initialize env for all future commands:
         let default_env = vec![
             (String::from("DEBUG"), debug_shable),
             (String::from("RUN_AS"), remote_user.to_owned()),
             (String::from("SKIP_ENV_VALIDATION"), validation_shable),
+            (String::from("ARGUMENTS"), arguments),
         ];
         Self {
             op_uuid,
