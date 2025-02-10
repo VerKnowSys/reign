@@ -43,7 +43,11 @@ async fn main() -> Result<(), Error> {
     let stream = futures::stream::iter(futures).buffer_unordered(cpu_cores);
 
     // wait for all futures to complete
-    info!("Streaming the process to max: {cpu_cores} ops at once");
+    info!(
+        "{} v{}. Autoscaling to max: {cpu_cores} simultaneous processes",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
     let results = stream.collect::<Vec<_>>().await;
     let all_results = results.into_iter().collect::<Vec<_>>();
     info!(

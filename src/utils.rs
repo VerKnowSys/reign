@@ -46,7 +46,7 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
     // sync: build the file list to sync:
     let mut files_to_sync: Vec<String> = vec![];
     for file in DEFAULT_FILES {
-        glob(&format!("{DEFAULT_SHABLE_DIR}/{file}*"))?
+        glob(&format!("{}/{file}*", shable_root_dir()))?
             .filter_map(Result::ok)
             .filter(|file| file.is_file())
             .for_each(|file| {
@@ -55,7 +55,7 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
             });
     }
     for files in DEFAULT_DIRS {
-        glob(&format!("{DEFAULT_SHABLE_DIR}/{files}/**/*"))?
+        glob(&format!("{}/{files}/**/*", shable_root_dir()))?
             .filter_map(Result::ok)
             .filter(|file| file.is_file())
             .for_each(|file| {

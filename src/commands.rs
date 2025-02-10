@@ -22,7 +22,7 @@ pub async fn run(
     let command = args[0];
     let mut cmd = Command::new(command);
     cmd.kill_on_drop(true);
-    cmd.current_dir(DEFAULT_SHABLE_DIR);
+    cmd.current_dir(shable_root_dir());
     cmd.args(&args[1..]);
     cmd.envs(env.to_vec());
     cmd.stdin(Stdio::null());
@@ -114,7 +114,7 @@ pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error
     let files_count = files_to_sync.len();
     let files_to_sync_str = files_to_sync
         .into_iter()
-        .map(|abs_file| abs_file.replace(&format!("{DEFAULT_SHABLE_DIR}/"), ""))
+        .map(|abs_file| abs_file.replace(&format!("{}/", shable_root_dir()), ""))
         .collect::<Vec<_>>()
         .join(" ");
     let command = &format!(
@@ -150,7 +150,8 @@ pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Er
     let remote_project_path = &operation.remote_project_path();
     let file_to_sync = &format!("{op_uuid}{DEFAULT_ARCHIVE_EXT}");
     let command = &format!(
-        "scp -4Bp {DEFAULT_SHABLE_DIR}/{file_to_sync} {remote_user}{remote_host}:{remote_project_path}/{file_to_sync}"
+        "scp -4Bp {}/{file_to_sync} {remote_user}{remote_host}:{remote_project_path}/{file_to_sync}",
+        shable_root_dir()
     );
     trace!("Cmd: {command}");
     debug!("Uploading…");

@@ -31,6 +31,8 @@
 #![allow(unused_imports)]
 
 
+use std::path::PathBuf;
+
 pub use anyhow::{anyhow, Error};
 pub use tracing::{debug, error, info, instrument, trace, warn};
 pub use tracing_subscriber::{fmt, EnvFilter};
@@ -49,9 +51,6 @@ pub const DEFAULT_DIRS: [&str; 6] = ["bin", "facts", "lib", "reigns", "tasks", "
 
 /// default file patterns to sync
 pub const DEFAULT_FILES: [&str; 2] = ["inventory", "*.sql"];
-
-/// default Shable repo to sync
-pub const DEFAULT_SHABLE_DIR: &str = "/Volumes/Projects/Shable.Centra";
 
 /// default compression type? - the fastest one
 pub const DEFAULT_ARCHIVE_EXT: &str = ".tar.zst";
@@ -129,4 +128,14 @@ impl ReignOperation {
             format!("{}@", self.remote_user)
         }
     }
+}
+
+
+/// default Shable repo to sync
+pub fn shable_root_dir() -> String {
+    std::env::current_dir()
+        .expect("The current working dir has to exist")
+        .as_path()
+        .display()
+        .to_string()
 }
