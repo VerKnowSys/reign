@@ -5,7 +5,7 @@ use futures::join;
 use glob::glob;
 use std::{
     path::Path,
-    process::{exit, ExitStatus, Output, Stdio, Termination},
+    process::{ExitStatus, Output, Stdio, Termination, exit},
     thread,
 };
 use tokio::process::Command;

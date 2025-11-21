@@ -1,7 +1,7 @@
 use crate::*;
 
 use std::{
-    process::{exit, ExitStatus, Output, Stdio, Termination},
+    process::{ExitStatus, Output, Stdio, Termination, exit},
     thread,
 };
 use tokio::{
