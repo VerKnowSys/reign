@@ -68,7 +68,7 @@ pub async fn run(
         stdout_logfile.flush().await?
     }
     while let Some(line) = stderr_reader.next_line().await? {
-        warn!("ERR {line}");
+        warn!("ERR: {line}");
         let bytes = format!("{line}\n").into_bytes();
         stderr_logfile.write_all(&bytes).await?;
         stderr_logfile.flush().await?
@@ -110,6 +110,7 @@ pub async fn run(
 pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error> {
     let op_uuid = &operation.op_uuid;
     let remote_user = &operation.remote_user;
+    let remote_host = &operation.remote_host;
     let files_to_sync = gather_files_to_sync().await?;
     let files_count = files_to_sync.len();
     let files_to_sync_str = files_to_sync
@@ -120,9 +121,10 @@ pub async fn tar_command(operation: &ReignOperation) -> Result<ExitStatus, Error
     let command = &format!(
         "tar --zstd -cf {op_uuid}{DEFAULT_ARCHIVE_EXT} --uname {remote_user} --gname {remote_user} --no-xattrs {files_to_sync_str}"
     );
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     trace!("Cmd: {command}");
     debug!("Building archive… (total files: {files_count})");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
 
 
@@ -135,9 +137,10 @@ pub async fn ssh_mkdir_command(operation: &ReignOperation) -> Result<ExitStatus,
     let remote_project_path = &operation.remote_project_path();
 
     let command = &format!("ssh {remote_user}{remote_host} mkdir -p {remote_project_path}");
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     trace!("Cmd: {command}");
     debug!("Creating remote dirs…");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
 
 
@@ -153,9 +156,10 @@ pub async fn upload_command(operation: &ReignOperation) -> Result<ExitStatus, Er
         "scp -4Bp {}/{file_to_sync} {remote_user}{remote_host}:{remote_project_path}/{file_to_sync}",
         shable_root_dir()
     );
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     trace!("Cmd: {command}");
     debug!("Uploading…");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
 
 
@@ -169,9 +173,10 @@ pub async fn unpack_command(operation: &ReignOperation) -> Result<ExitStatus, Er
     let command = &format!(
         "ssh {remote_user}{remote_host} cd {remote_project_path}; tar xf {op_uuid}{DEFAULT_ARCHIVE_EXT}",
     );
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     trace!("Cmd: {command}");
     debug!("Unpacking…");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
 
 
@@ -192,9 +197,10 @@ pub async fn reign_command(operation: &ReignOperation) -> Result<ExitStatus, Err
     let command = &format!(
         "ssh {remote_user}{remote_host} cd {remote_project_path} && /bin/sh -c 'export DEBUG={debug_env} SKIP_ENV_VALIDATION={skip_env_validation} REMOTE={remote_host} ARGUMENTS={arguments} && bin/shable {inventory} {reign_name} 2>&1'"
     );
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     trace!("Cmd: {command}");
     debug!("Reign => '{reign_name}' on '{remote_user}{remote_host}:{remote_project_path}'");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
 
 
@@ -207,12 +213,13 @@ pub async fn cleanup_command(operation: &ReignOperation) -> Result<ExitStatus, E
     let remote_project_path = &operation.remote_project_path();
 
     let command = &format!("ssh {remote_user}{remote_host} rm -rf {remote_project_path}");
+    let identifier = &format!("{}-{}", remote_host, op_uuid);
     debug!("Cleanup: {remote_user}{remote_host}:{remote_project_path}");
-    run(command, &operation.default_env, op_uuid)
+    run(command, &operation.default_env, identifier)
         .await
         .unwrap_or_default();
 
     let command = &format!("rm -f {op_uuid}{DEFAULT_ARCHIVE_EXT}");
     debug!("Cleanup: {op_uuid}{DEFAULT_ARCHIVE_EXT}");
-    run(command, &operation.default_env, op_uuid).await
+    run(command, &operation.default_env, identifier).await
 }
