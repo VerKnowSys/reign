@@ -57,7 +57,7 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
     for files in DEFAULT_DIRS {
         glob(&format!("{}/{files}/**/*", shable_root_dir()))?
             .filter_map(Result::ok)
-            .filter(|file| file.is_file())
+            .filter(|file| file.is_file() && !file.ends_with("reign-multi"))
             .for_each(|file| {
                 let a_file = file.into_os_string().into_string().unwrap_or_default();
                 files_to_sync.push(a_file);
@@ -65,6 +65,28 @@ pub async fn gather_files_to_sync() -> Result<Vec<String>, Error> {
     }
     trace!("Files to sync: {files_to_sync:#?}");
     Ok(files_to_sync)
+}
+
+
+#[tokio::test]
+#[instrument]
+async fn test_if_reign_multi_is_included() {
+    initialize_logger();
+    assert_eq!(
+        gather_files_to_sync()
+            .await
+            .unwrap()
+            .iter()
+            .find(|elem| elem.ends_with("reign"))
+            .map(|elem| elem.split('/').next_back().unwrap()),
+        Some("reign")
+    );
+    assert!(
+        !gather_files_to_sync()
+            .await
+            .unwrap()
+            .contains(&"reign-multi".to_string())
+    )
 }
 
 
