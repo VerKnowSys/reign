@@ -23,7 +23,10 @@ async fn main() -> Result<(), Error> {
         tokio::signal::ctrl_c().await?;
 
         // ctrl-c triggered
-        warn!("Interrupted Reign.");
+        warn!("Interrupted Reign. Any state leftover has to be cleaned manually!");
+
+        // SAFETY: no time for graceful play with Tokio here. If ctrl-c is pressed it means we have to abort immediately, without cleanup:
+        unsafe { libc::raise(libc::SIGTERM) };
 
         Err::<(), Error>(anyhow!("Interrupted"))
     });
