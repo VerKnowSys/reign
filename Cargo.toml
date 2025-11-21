@@ -1,7 +1,8 @@
 [package]
 name = "reign-ng"
-version = "0.2.0"
-edition = "2021"
+version = "0.4.0"
+edition = "2024"
+default-run = "reign-multi"
 
 [dependencies]
 anyhow = "1.0.100"
